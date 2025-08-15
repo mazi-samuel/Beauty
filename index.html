@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GlowCart — Beauty & Cosmetics Marketplace (MVP)</title>
+  <style>
+    :root {
+      --bg: #0f1115;        --card:#151923;       --muted:#9aa4b2;
+      --text: #e8ecf1;      --brand:#ff6aa6;      --brand-2:#7c4dff;
+      --ok:#22c55e;         --warn:#f59e0b;       --bad:#ef4444;
+      --border:#232839;     --chip:#1e2433;       --soft:#0b0d12;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial,sans-serif;background:linear-gradient(180deg,var(--soft),var(--bg));color:var(--text)}
+    a{color:inherit;text-decoration:none}
+    img{max-width:100%;display:block}
+    .container{max-width:1200px;margin:0 auto;padding:16px}
+    header{position:sticky;top:0;z-index:30;background:rgba(10,12,18,.8);backdrop-filter:saturate(140%) blur(10px);border-bottom:1px solid var(--border)}
+    .nav{display:flex;gap:16px;align-items:center;justify-content:space-between}
+    .brand{display:flex;gap:10px;align-items:center;font-weight:800;letter-spacing:.5px}
+    .brand .logo{width:36px;height:36px;border-radius:10px;background:conic-gradient(from 0deg,var(--brand),var(--brand-2));box-shadow:0 10px 30px rgba(124,77,255,.25)}
+    .nav-links{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{border:1px solid var(--border);background:linear-gradient(180deg,#1a1f2d,#131828);color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer;transition:transform .05s ease,opacity .2s}
+    .btn:hover{transform:translateY(-1px)}
+    .btn.brand{background:linear-gradient(90deg,var(--brand),var(--brand-2));border:none;color:white}
+    .btn.ghost{background:transparent}
+    .btn.bad{background:linear-gradient(90deg,#ef4444,#f43f5e);border:none}
+    .grid{display:grid;gap:16px}
+    .grid.cards{grid-template-columns:repeat(12,1fr)}
+    .card{background:linear-gradient(180deg,#121726,#0f1320);border:1px solid var(--border);border-radius:18px;box-shadow:0 6px 30px rgba(0,0,0,.25)}
+    .card.pad{padding:16px}
+    .chip{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--border);color:var(--muted);font-size:12px}
+    .muted{color:var(--muted)}
+    .h1{font-size:28px;font-weight:800;margin:8px 0}
+    .h2{font-size:22px;font-weight:700;margin:8px 0}
+    .h3{font-size:16px;font-weight:700;margin:8px 0}
+    .section{padding:18px 0}
+    .two-col{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+    @media (max-width: 860px){.two-col{grid-template-columns:1fr}.nav-links{gap:6px}}
+
+    /* Product cards */
+    .product{display:flex;flex-direction:column;gap:10px}
+    .product .thumb{aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:#0c0f18;border:1px solid var(--border)}
+    .product .title{font-weight:600}
+    .price{font-weight:800}
+    .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .space{flex:1}
+
+    /* Modals */
+    .modal{position:fixed;inset:0;background:rgba(5,7,10,.6);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+    .modal.show{display:flex}
+    .modal .box{width:min(750px,100%);max-height:85vh;overflow:auto}
+
+    /* Tables */
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid var(--border);text-align:left}
+    tr:hover td{background:#0c1120}
+    .tag{font-size:12px;padding:3px 8px;border-radius:999px;background:#13203a;border:1px solid var(--border)}
+
+    /* Chat */
+    .chat{display:flex;flex-direction:column;gap:10px}
+    .bubble{padding:10px 12px;border-radius:14px;max-width:80%}
+    .me{align-self:flex-end;background:#1e2333}
+    .them{align-self:flex-start;background:#151b2b}
+
+    /* Forms */
+    input,select,textarea{width:100%;padding:10px;border-radius:12px;border:1px solid var(--border);background:#0e1425;color:var(--text)}
+    label{font-size:12px;color:var(--muted)}
+    .stack{display:grid;gap:10px}
+
+    /* Ad slots */
+    .ad-slot{display:block;min-height:90px;border:1px dashed #273040;border-radius:12px;background:#0b1020;align-content:center;text-align:center;color:#8aa0bf}
+    .ad-slot img{width:100%;height:100%;object-fit:cover;border-radius:12px}
+
+    /* Avatar */
+    .avatar{width:36px;height:36px;border-radius:12px;display:inline-grid;place-items:center;font-weight:800;background:#131a2d;border:1px solid var(--border)}
+    .avatar.lg{width:72px;height:72px;border-radius:16px}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <div class="brand"><div class="logo"></div> GlowCart</div>
+      <div class="nav-links">
+        <button class="btn ghost" data-nav="home">Home</button>
+        <button class="btn ghost" data-nav="shop">Shop</button>
+        <button class="btn ghost" data-nav="community">18+ Community</button>
+        <button class="btn ghost" data-nav="cart">Cart <span id="cart-count" class="tag">0</span></button>
+        <button class="btn ghost" data-nav="account">Account</button>
+        <button class="btn" id="adminOpen">Admin</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Landing / Home -->
+    <section id="view-home" class="section">
+      <div class="two-col">
+        <div class="card pad">
+          <span class="chip">Curated for you</span>
+          <h1 class="h1">Beauty & cosmetics marketplace with privacy-first avatars ✨</h1>
+          <p class="muted">Buy and sell skincare, makeup, haircare and more. KYC verified for trust, but your public profile stays anonymous via avatars.</p>
+          <div class="row" style="margin-top:8px">
+            <button class="btn brand" data-nav="shop">Browse Products</button>
+            <button class="btn" id="sellOpen">Start Selling</button>
+          </div>
+        </div>
+        <aside class="card pad">
+          <div class="h3">Sponsored</div>
+          <a class="ad-slot" id="ad-home" href="#" target="_blank">Ad Slot — Home</a>
+        </aside>
+      </div>
+
+      <div class="section">
+        <div class="row" style="margin-bottom:8px">
+          <div class="h2">Featured</div>
+          <span class="space"></span>
+          <select id="categoryFilter" style="max-width:220px"></select>
+        </div>
+        <div id="productGrid" class="grid cards"></div>
+      </div>
+    </section>
+
+    <!-- Shop -->
+    <section id="view-shop" class="section" hidden>
+      <div class="row" style="margin-bottom:8px">
+        <div class="h2">All Products</div>
+        <span class="space"></span>
+        <input id="search" placeholder="Search… (name, category)" style="max-width:260px" />
+      </div>
+      <div id="productGridAll" class="grid cards"></div>
+      <div class="section"><a class="ad-slot" id="ad-product" href="#" target="_blank">Ad Slot — Product pages</a></div>
+    </section>
+
+    <!-- Cart / Checkout -->
+    <section id="view-cart" class="section" hidden>
+      <div class="two-col">
+        <div class="card pad">
+          <div class="h2">Your Cart</div>
+          <div id="cartList" class="stack"></div>
+        </div>
+        <div class="card pad">
+          <div class="h2">Checkout</div>
+          <div class="stack">
+            <label>Delivery Address<input id="addr" placeholder="Street, City, Country"/></label>
+            <label>Payment Gateway
+              <select id="gateway">
+                <option>Paystack</option>
+                <option>Flutterwave</option>
+                <option>Stripe</option>
+              </select>
+            </label>
+            <button class="btn brand" id="payBtn">Pay & Place Order</button>
+            <div id="orderStatus" class="muted"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Community (18+) -->
+    <section id="view-community" class="section" hidden>
+      <div class="two-col">
+        <div class="card pad">
+          <div class="row">
+            <div class="h2">18+ Community</div>
+            <span class="space"></span>
+            <span id="ageBadge" class="chip">Age: Unknown</span>
+          </div>
+          <p class="muted">Access requires age verification. Community must follow posted rules. No illegal content, violence, hate, or minors. Be respectful. Moderation in effect.</p>
+          <div class="row" style="gap:8px">
+            <select id="roomSelect" style="max-width:260px"></select>
+            <button class="btn" id="verifyAgeBtn">Verify Age</button>
+            <button class="btn" id="rulesBtn">View Rules</button>
+          </div>
+          <div id="chatFeed" class="chat" style="margin-top:12px"></div>
+          <div class="row" style="margin-top:8px">
+            <input id="chatText" placeholder="Write a message… (URLs for images/videos allowed)" />
+            <button class="btn brand" id="sendMsg">Send</button>
+          </div>
+        </div>
+        <aside class="card pad">
+          <div class="h3">Sponsored</div>
+          <a class="ad-slot" id="ad-community" href="#" target="_blank">Ad Slot — Community</a>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Account -->
+    <section id="view-account" class="section" hidden>
+      <div class="two-col">
+        <div class="card pad">
+          <div class="row">
+            <div class="h2">Account & KYC</div>
+            <span class="space"></span>
+            <div id="avatar" class="avatar lg">?</div>
+          </div>
+          <div class="stack">
+            <label>Display Name (for avatar initials)
+              <input id="name" placeholder="e.g. Glow Lover" />
+            </label>
+            <label>Email / Phone
+              <input id="contact" placeholder="email@you.com or +234…" />
+            </label>
+            <details>
+              <summary>KYC Verification (stored locally in this MVP)</summary>
+              <div class="stack" style="margin-top:8px">
+                <label>Government ID (image file)
+                  <input id="kycId" type="file" accept="image/*" />
+                </label>
+                <label>Selfie / Face Capture (image file)
+                  <input id="kycSelfie" type="file" accept="image/*" />
+                </label>
+                <button class="btn" id="kycSubmit">Submit for Verification</button>
+                <div id="kycStatus" class="muted">Not submitted</div>
+              </div>
+            </details>
+            <details>
+              <summary>Age Verification for 18+ Access</summary>
+              <div class="row" style="margin-top:8px">
+                <label style="flex:1">Date of Birth<input id="dob" type="date" /></label>
+                <button class="btn" id="ageSubmit">Verify Age</button>
+              </div>
+              <div id="ageStatus" class="muted"></div>
+            </details>
+            <button class="btn brand" id="saveProfile">Save Profile</button>
+          </div>
+        </div>
+        <aside class="card pad">
+          <div class="h3">Become a Seller</div>
+          <div class="stack">
+            <label>Product Name<input id="pName"/></label>
+            <label>Category<select id="pCat"></select></label>
+            <label>Price (USD)<input id="pPrice" type="number" step="0.01"/></label>
+            <label>Image URL<input id="pImg" placeholder="https://…"/></label>
+            <label>Description<textarea id="pDesc" rows="3"></textarea></label>
+            <button class="btn" id="submitProduct">Submit for Approval</button>
+            <div class="muted">Your avatar and rating will show publicly; KYC remains private.</div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Admin -->
+    <section id="view-admin" class="section" hidden>
+      <div class="card pad">
+        <div class="row"><div class="h2">Admin Panel</div><span class="space"></span><button class="btn bad" id="adminLogout">Logout</button></div>
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px">
+          <div class="card pad">
+            <div class="h3">Pending Products</div>
+            <div id="pendingProducts" class="stack"></div>
+          </div>
+          <div class="card pad">
+            <div class="h3">KYC Submissions</div>
+            <div id="kycQueue" class="stack"></div>
+          </div>
+          <div class="card pad">
+            <div class="h3">Community Moderation</div>
+            <div id="modQueue" class="stack"></div>
+          </div>
+          <div class="card pad">
+            <div class="h3">Ads Manager</div>
+            <div class="stack">
+              <label>Home Ad Image URL<input id="adHomeUrl" placeholder="https://…"/></label>
+              <label>Home Ad Link<input id="adHomeLink" placeholder="https://…"/></label>
+              <label>Product Ad Image URL<input id="adProdUrl"/></label>
+              <label>Product Ad Link<input id="adProdLink"/></label>
+              <label>Community Ad Image URL<input id="adComUrl"/></label>
+              <label>Community Ad Link<input id="adComLink"/></label>
+              <button class="btn" id="saveAds">Save Ads</button>
+            </div>
+          </div>
+          <div class="card pad">
+            <div class="h3">Sales & Ad Revenue (MVP)</div>
+            <div id="metrics" class="stack"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Product Detail Modal -->
+  <div id="productModal" class="modal" role="dialog" aria-modal="true">
+    <div class="box card pad">
+      <div class="row"><div class="h2" id="pmTitle">Product</div><span class="space"></span><button class="btn" id="pmClose">Close</button></div>
+      <div class="two-col">
+        <div><img id="pmImg" alt="Product image" style="border-radius:14px;border:1px solid var(--border)"/></div>
+        <div>
+          <div class="stack">
+            <div id="pmPrice" class="h2"></div>
+            <div id="pmDesc" class="muted"></div>
+            <div class="row"><div id="pmSeller" class="row"></div><span class="tag" id="pmRating">★ ★ ★ ★ ☆</span></div>
+            <div class="row">
+              <label style="max-width:120px">Qty<input type="number" id="pmQty" min="1" value="1"/></label>
+              <button class="btn brand" id="pmAdd">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KYC Prompt Modal -->
+  <div id="kycModal" class="modal" role="dialog" aria-modal="true">
+    <div class="box card pad">
+      <div class="row"><div class="h2">KYC Required</div><span class="space"></span><button class="btn" id="kycClose">Close</button></div>
+      <p class="muted">Please complete KYC in the Account section to sell products. Your public identity remains anonymous via avatar.</p>
+      <div class="row"><button class="btn brand" data-nav="account" id="gotoKyc">Go to KYC</button></div>
+    </div>
+  </div>
+
+  <!-- Rules Modal -->
+  <div id="rulesModal" class="modal" role="dialog" aria-modal="true">
+    <div class="box card pad">
+      <div class="row"><div class="h2">Community Rules</div><span class="space"></span><button class="btn" id="rulesClose">Close</button></div>
+      <ul>
+        <li>No minors. Age 18+ only. Strictly enforced.</li>
+        <li>No illegal content. No nudity involving minors. No violence or hate speech.</li>
+        <li>Consent only. Harassment or doxxing results in ban.</li>
+        <li>Post responsibly. Ads or spam allowed only in designated threads.</li>
+        <li>Report abuse via the Admin Panel contacts.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Admin Login Modal -->
+  <div id="adminModal" class="modal" role="dialog" aria-modal="true">
+    <div class="box card pad" style="max-width:420px">
+      <div class="row"><div class="h2">Admin Login</div><span class="space"></span><button class="btn" id="adminClose">Close</button></div>
+      <div class="stack">
+        <label>Admin Passcode<input id="adminPass" type="password" placeholder="Enter passcode"/></label>
+        <button class="btn brand" id="adminLogin">Login</button>
+        <div class="muted">MVP demo passcode: <code>glow-admin-123</code></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  /*************************
+   * Utilities & Storage
+   *************************/
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+  const store = {
+    get(k, d){try{ return JSON.parse(localStorage.getItem(k)) ?? d }catch{ return d }},
+    set(k, v){localStorage.setItem(k, JSON.stringify(v))}
+  };
+  const fmt = n => new Intl.NumberFormat(undefined,{style:'currency',currency:'USD'}).format(n);
+  const uid = () => Math.random().toString(36).slice(2,10);
+
+  // Basic bad-words filter (very light mvp)
+  const banned = [/\bkill\b/i,/\brape\b/i,/\bnazi\b/i,/\bminor\b/i];
+  const cleanText = t => banned.some(r=>r.test(t)) ? t.replaceAll(/./g,'•') : t;
+
+  // Avatar generator (initials on gradient)
+  function makeAvatar(name, size=36){
+    const cnv = document.createElement('canvas');
+    cnv.width = cnv.height = size*2;
+    const ctx = cnv.getContext('2d');
+    const seed = (name||'?').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+    const h = seed % 360;
+    const g = ctx.createLinearGradient(0,0,cnv.width,cnv.height);
+    g.addColorStop(0, `hsl(${h},70%,55%)`);
+    g.addColorStop(1, `hsl(${(h+60)%360},70%,45%)`);
+    ctx.fillStyle = g; ctx.fillRect(0,0,cnv.width,cnv.height);
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    ctx.fillRect(0,0,cnv.width,cnv.height);
+    const initials = (name||'?').split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase();
+    ctx.fillStyle = '#fff';
+    ctx.font = `${size*1.2}px system-ui`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(initials, cnv.width/2, cnv.height/2+2);
+    return cnv.toDataURL('image/png');
+  }
+
+  /*************************
+   * Seed Data
+   *************************/
+  const CATEGORIES = ['All','Skincare','Makeup','Haircare','Fragrances','Tools'];
+  const seedProducts = [
+    {id:uid(), name:'HydraGlow Serum', price:19.99, cat:'Skincare', img:'https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?q=80&w=1200&auto=format&fit=crop', desc:'Hyaluronic acid + vitamin B5 for deep hydration.', seller:'Luna Lab', rating:4.6, approved:true},
+    {id:uid(), name:'Velvet Matte Lipstick', price:12.50, cat:'Makeup', img:'https://images.unsplash.com/photo-1585386959984-a41552231658?q=80&w=1200&auto=format&fit=crop', desc:'Rich pigment with soft-matte finish.', seller:'KissKiss', rating:4.3, approved:true},
+    {id:uid(), name:'Argan Repair Hair Oil', price:16.00, cat:'Haircare', img:'https://images.unsplash.com/photo-1615634260167-c8e097e1d0df?q=80&w=1200&auto=format&fit=crop', desc:'Lightweight oil for frizz control and shine.', seller:'Root Rituals', rating:4.8, approved:true},
+    {id:uid(), name:'No. 8 Eau de Parfum', price:48.00, cat:'Fragrances', img:'https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=1200&auto=format&fit=crop', desc:'Warm amber with citrus top notes.', seller:'Maison Aura', rating:4.5, approved:true},
+    {id:uid(), name:'Pro Blend Brush Set', price:22.00, cat:'Tools', img:'https://images.unsplash.com/photo-1604881980720-8d8551b31a6f?q=80&w=1200&auto=format&fit=crop', desc:'5-piece synthetic brush kit.', seller:'ProStroke', rating:4.2, approved:true}
+  ];
+
+  // One-time seeding
+  if(!store.get('seeded', false)){
+    store.set('products', seedProducts);
+    store.set('pending', []);
+    store.set('orders', []);
+    store.set('ads', {home:{}, product:{}, community:{}});
+    store.set('chat', {rooms:{
+      General:[], "Skin & Body":[], "Makeup Tips":[]
+    }, flags: []});
+    store.set('users', {}); // keyed by contact
+    store.set('seeded', true);
+  }
+
+  /*************************
+   * State
+   *************************/
+  const state = {
+    view:'home', me: store.get('me', {name:'', contact:'', verified:false, ageOK:false, dob:'', avatar:''}),
+    admin:false,
+    currentProduct:null,
+  };
+
+  function saveMe(){ store.set('me', state.me); }
+
+  /*************************
+   * Navigation
+   *************************/
+  function show(view){
+    state.view = view;
+    ['home','shop','cart','community','account','admin'].forEach(v=>{
+      const el = document.getElementById('view-'+v);
+      if(!el) return; el.hidden = v!==view;
+    });
+    if(view==='home'){ renderHome(); }
+    if(view==='shop'){ renderShop(); }
+    if(view==='cart'){ renderCart(); }
+    if(view==='community'){ renderCommunity(); }
+    if(view==='account'){ renderAccount(); }
+    if(view==='admin'){ if(state.admin) renderAdmin(); else openModal('adminModal'); }
+  }
+
+  $$('.nav [data-nav], [data-nav]')
+    .forEach(b=> b.addEventListener('click', e=> show(e.currentTarget.dataset.nav)));
+
+  /*************************
+   * Products & Shop
+   *************************/
+  function products(){ return store.get('products', []) }
+  function pending(){ return store.get('pending', []) }
+
+  function renderHome(){
+    const grid = $('#productGrid'); grid.innerHTML='';
+    const list = products().filter(p=>p.approved).slice(0,8);
+    grid.style.gridTemplateColumns = 'repeat( auto-fill, minmax(180px,1fr) )';
+    list.forEach(p=> grid.appendChild(productCard(p)) );
+    // Category filter
+    const sel = $('#categoryFilter'); sel.innerHTML='';
+    CATEGORIES.forEach(c=>{ const o=document.createElement('option'); o.textContent=c; sel.appendChild(o); });
+    sel.onchange = ()=> renderShop(sel.value==='All'? null : sel.value);
+    // Ads
+    mountAds();
+  }
+
+  function renderShop(filterCat=null){
+    show('shop');
+    const grid = $('#productGridAll'); grid.innerHTML='';
+    grid.style.gridTemplateColumns = 'repeat( auto-fill, minmax(180px,1fr) )';
+    let list = products().filter(p=>p.approved);
+    if(filterCat) list = list.filter(p=>p.cat===filterCat);
+    const q = $('#search').value?.toLowerCase?.()||'';
+    if(q) list = list.filter(p=> (p.name+p.cat).toLowerCase().includes(q));
+    list.forEach(p=> grid.appendChild(productCard(p)) );
+    $('#search').oninput = ()=> renderShop(filterCat);
+    mountAds();
+  }
+
+  function productCard(p){
+    const card = document.createElement('div'); card.className='card pad product';
+    card.innerHTML = `
+      <div class='thumb'><img src='${p.img}' alt='${p.name}'/></div>
+      <div class='title'>${p.name}</div>
+      <div class='muted'>${p.cat}</div>
+      <div class='row'><div class='price'>${fmt(p.price)}</div><span class='space'></span><button class='btn' data-id='${p.id}'>View</button></div>`;
+    card.querySelector('button').onclick = ()=> openProduct(p.id);
+    return card;
+  }
+
+  function openProduct(id){
+    const p = products().find(x=>x.id===id); if(!p) return;
+    state.currentProduct = p;
+    $('#pmTitle').textContent = p.name;
+    $('#pmImg').src = p.img; $('#pmDesc').textContent = p.desc;
+    $('#pmPrice').textContent = fmt(p.price);
+    const sellerAv = document.createElement('img'); sellerAv.src = makeAvatar(p.seller, 36); sellerAv.className='avatar';
+    const seller = $('#pmSeller'); seller.innerHTML=''; seller.appendChild(sellerAv);
+    const sName = document.createElement('span'); sName.textContent = ' ' + p.seller; seller.appendChild(sName);
+    $('#pmRating').textContent = '★'.repeat(Math.round(p.rating)) + ' ☆'.repeat(5-Math.round(p.rating));
+    $('#pmQty').value = 1;
+    openModal('productModal');
+  }
+
+  $('#pmAdd').onclick = ()=>{
+    const p = state.currentProduct; if(!p) return;
+    const qty = Math.max(1, parseInt($('#pmQty').value||'1'));
+    const cart = store.get('cart', []);
+    const ex = cart.find(x=>x.id===p.id); if(ex) ex.qty += qty; else cart.push({id:p.id, qty});
+    store.set('cart', cart); updateCartCount();
+    closeModal('productModal'); show('cart');
+  };
+
+  $('#pmClose').onclick = ()=> closeModal('productModal');
+
+  function updateCartCount(){
+    const n = store.get('cart', []).reduce((a,c)=>a+c.qty,0);
+    $('#cart-count').textContent = n;
+  }
+
+  /*************************
+   * Cart & Checkout
+   *************************/
+  function renderCart(){
+    const cart = store.get('cart', []);
+    const list = $('#cartList'); list.innerHTML='';
+    let total = 0;
+    cart.forEach(item=>{
+      const p = products().find(x=>x.id===item.id); if(!p) return;
+      total += p.price*item.qty;
+      const row = document.createElement('div'); row.className='card pad';
+      row.innerHTML = `
+        <div class='row'>
+          <div class='row' style='gap:12px'>
+            <img src='${p.img}' style='width:64px;height:64px;border-radius:12px;border:1px solid var(--border);object-fit:cover'/>
+            <div>
+              <div class='h3'>${p.name}</div>
+              <div class='muted'>${fmt(p.price)} • ${p.cat}</div>
+            </div>
+          </div>
+          <span class='space'></span>
+          <label style='max-width:80px'>Qty<input data-id='${p.id}' class='qty' type='number' min='1' value='${item.qty}'/></label>
+          <button class='btn bad' data-rm='${p.id}'>Remove</button>
+        </div>`;
+      list.appendChild(row);
+    });
+    const sum = document.createElement('div'); sum.className='row';
+    sum.innerHTML = `<div class='h2'>Total: ${fmt(total)}</div><span class='space'></span>`;
+    list.appendChild(sum);
+
+    list.querySelectorAll('.qty').forEach(inp=> inp.onchange = e=>{
+      const id = e.currentTarget.dataset.id; let cart = store.get('cart', []);
+      const it = cart.find(x=>x.id===id); if(!it) return; it.qty = Math.max(1, parseInt(e.currentTarget.value||'1'));
+      store.set('cart', cart); renderCart(); updateCartCount();
+    });
+    list.querySelectorAll('[data-rm]').forEach(btn=> btn.onclick = e=>{
+      const id = e.currentTarget.dataset.rm; let cart = store.get('cart', []);
+      cart = cart.filter(x=>x.id!==id); store.set('cart', cart); renderCart(); updateCartCount();
+    });
+  }
+
+  $('#payBtn').onclick = ()=>{
+    const addr = $('#addr').value.trim(); if(!addr){ return $('#orderStatus').textContent='Enter delivery address.' }
+    const cart = store.get('cart', []); if(!cart.length){ return $('#orderStatus').textContent='Cart is empty.' }
+    // Simulate payment success
+    const order = {id:uid(), items:cart, total: cart.reduce((a,c)=>{
+      const p = products().find(x=>x.id===c.id); return a + (p?p.price*c.qty:0); },0),
+      gateway: $('#gateway').value, addr, ts: Date.now(), status:'Processing'};
+    const orders = store.get('orders', []); orders.push(order); store.set('orders', orders);
+    store.set('cart', []); updateCartCount(); renderCart();
+    $('#orderStatus').textContent = 'Payment authorized via '+order.gateway+' — Order placed! Status: '+order.status;
+  };
+
+  /*************************
+   * Account, KYC, Seller submission
+   *************************/
+  function renderAccount(){
+    $('#name').value = state.me.name||'';
+    $('#contact').value = state.me.contact||'';
+    $('#kycStatus').textContent = state.me.verified? 'Verified ✅' : (state.me.kycSubmitted?'Pending ⌛':'Not submitted');
+    $('#ageStatus').textContent = state.me.ageOK? 'Age verified (18+) ✅' : 'Not verified';
+    const av = $('#avatar'); av.innerHTML='';
+    const img = document.createElement('img'); img.src = state.me.avatar || makeAvatar(state.me.name||'?',72); img.className='avatar lg';
+    av.replaceWith(img); img.id='avatar';
+    // Populate categories
+    const pCat = $('#pCat'); pCat.innerHTML=''; CATEGORIES.slice(1).forEach(c=>{ const o=document.createElement('option'); o.textContent=c; pCat.appendChild(o); });
+  }
+
+  $('#saveProfile').onclick = ()=>{
+    state.me.name = $('#name').value.trim();
+    state.me.contact = $('#contact').value.trim();
+    state.me.avatar = makeAvatar(state.me.name||'?',72);
+    saveMe(); renderAccount(); alert('Profile saved.');
+  };
+
+  $('#kycSubmit').onclick = ()=>{
+    if(!$('#contact').value.trim()) { alert('Add a contact (email/phone) first.'); return; }
+    state.me.kycSubmitted = true; saveMe();
+    const users = store.get('users', {}); users[state.me.contact] = {name:state.me.name, submitted:Date.now(), files:true, verified:false}; store.set('users', users);
+    renderAccount(); alert('KYC submitted. Admin will review.');
+  };
+
+  $('#ageSubmit').onclick = ()=>{
+    const dob = $('#dob').value; if(!dob) return alert('Select your date of birth.');
+    state.me.dob = dob;
+    const age = Math.floor((Date.now()-new Date(dob).getTime())/ (365.25*24*3600*1000));
+    state.me.ageOK = age >= 18; saveMe(); renderAccount();
+    alert(state.me.ageOK? 'You are age-verified for 18+ access.' : 'You must be 18+ to access adult community.');
+  };
+
+  $('#submitProduct').onclick = ()=>{
+    if(!state.me.verified){ openModal('kycModal'); return; }
+    const name = $('#pName').value.trim(); const cat = $('#pCat').value; const price = parseFloat($('#pPrice').value||'0');
+    const img = $('#pImg').value.trim(); const desc = $('#pDesc').value.trim();
+    if(!name||!cat||!price||!img||!desc){ return alert('Fill all product fields.'); }
+    const pend = pending();
+    pend.push({id:uid(), name, cat, price, img, desc, seller: state.me.name||'Seller', rating:4.0, approved:false, submittedBy: state.me.contact});
+    store.set('pending', pend);
+    $('#pName').value=''; $('#pPrice').value=''; $('#pImg').value=''; $('#pDesc').value='';
+    alert('Product submitted for admin approval.');
+  };
+
+  $('#sellOpen').onclick = ()=> show('account');
+  $('#gotoKyc').onclick = ()=>{ closeModal('kycModal'); show('account'); };
+  $('#kycClose').onclick = ()=> closeModal('kycModal');
+
+  /*************************
+   * Community (18+)
+   *************************/
+  function renderCommunity(){
+    const chat = store.get('chat', {rooms:{},flags:[]});
+    const sel = $('#roomSelect'); sel.innerHTML='';
+    Object.keys(chat.rooms).forEach(r=>{ const o=document.createElement('option'); o.textContent=r; sel.appendChild(o); });
+    $('#ageBadge').textContent = 'Age: ' + (state.me.ageOK?'18+ ✅':'Unknown / Not verified');
+    drawFeed();
+  }
+
+  function drawFeed(){
+    const chat = store.get('chat', {rooms:{},flags:[]});
+    const room = $('#roomSelect').value || Object.keys(chat.rooms)[0];
+    const feed = $('#chatFeed'); feed.innerHTML='';
+    (chat.rooms[room]||[]).slice(-50).forEach(m=>{
+      const div = document.createElement('div'); div.className = 'bubble ' + (m.me?'me':'them');
+      if(m.type==='image' && m.url){ div.innerHTML = `<img src='${m.url}' alt='image'/>` }
+      else if(m.type==='video' && m.url){ div.innerHTML = `<video src='${m.url}' controls style='max-width:100%'></video>` }
+      else { div.textContent = m.text }
+      feed.appendChild(div);
+    });
+  }
+
+  $('#sendMsg').onclick = ()=>{
+    if(!state.me.ageOK){ return alert('Age verification required. Go to Account > Age Verification.'); }
+    const txt = $('#chatText').value.trim(); if(!txt) return;
+    const chat = store.get('chat', {rooms:{},flags:[]});
+    const room = $('#roomSelect').value || Object.keys(chat.rooms)[0];
+    // Detect URL for image/video
+    let msg = {me:true, ts:Date.now()};
+    if(/^https?:\/\/.+\.(png|jpg|jpeg|gif|webp)$/i.test(txt)) msg.type='image', msg.url=txt;
+    else if(/^https?:\/\/.+\.(mp4|webm|mov)$/i.test(txt)) msg.type='video', msg.url=txt;
+    else msg.type='text', msg.text = cleanText(txt);
+    chat.rooms[room].push(msg);
+    store.set('chat', chat);
+    $('#chatText').value=''; drawFeed();
+  };
+
+  $('#verifyAgeBtn').onclick = ()=> show('account');
+  $('#rulesBtn').onclick = ()=> openModal('rulesModal');
+  $('#rulesClose').onclick = ()=> closeModal('rulesModal');
+
+  /*************************
+   * Ads Manager (MVP manual)
+   *************************/
+  function mountAds(){
+    const ads = store.get('ads', {home:{}, product:{}, community:{}});
+    const mount = (slot, cfg)=>{
+      const a = $('#'+slot);
+      if(cfg?.img){ a.innerHTML = `<img src='${cfg.img}' alt='ad'/>`; a.href = cfg.link||'#'; a.target = '_blank'; }
+      else { a.innerHTML = slot.replace('ad-','Ad: '); a.href='#'; }
+    };
+    mount('ad-home', ads.home);
+    mount('ad-product', ads.product);
+    mount('ad-community', ads.community);
+  }
+
+  /*************************
+   * Admin Panel
+   *************************/
+  $('#adminOpen').onclick = ()=> openModal('adminModal');
+  $('#adminClose').onclick = ()=> closeModal('adminModal');
+  $('#adminLogin').onclick = ()=>{
+    if($('#adminPass').value === 'glow-admin-123'){ state.admin=true; closeModal('adminModal'); show('admin'); }
+    else alert('Incorrect passcode.');
+  };
+  $('#adminLogout').onclick = ()=>{ state.admin=false; show('home'); };
+
+  function renderAdmin(){
+    // Pending products
+    const pend = pending();
+    const wrap = $('#pendingProducts'); wrap.innerHTML='';
+    if(!pend.length) wrap.innerHTML = '<div class="muted">No pending products.</div>';
+    pend.forEach(p=>{
+      const row = document.createElement('div'); row.className='card pad';
+      row.innerHTML = `<div class='row'>
+        <div class='row' style='gap:10px'>
+          <img src='${p.img}' style='width:56px;height:56px;border-radius:10px;border:1px solid var(--border);object-fit:cover'/>
+          <div><div class='h3'>${p.name}</div><div class='muted'>${p.cat} • ${fmt(p.price)}</div></div>
+        </div>
+        <span class='space'></span>
+        <button class='btn' data-approve='${p.id}'>Approve</button>
+        <button class='btn bad' data-reject='${p.id}'>Reject</button>
+      </div>`;
+      wrap.appendChild(row);
+    });
+    wrap.querySelectorAll('[data-approve]').forEach(b=> b.onclick = e=>{
+      const id = e.currentTarget.dataset.approve; let pend = pending();
+      const i = pend.findIndex(x=>x.id===id); if(i>-1){ const p = pend.splice(i,1)[0]; p.approved=true; const prods = products(); prods.push(p); store.set('products', prods); store.set('pending', pend); renderAdmin(); }
+    });
+    wrap.querySelectorAll('[data-reject]').forEach(b=> b.onclick = e=>{
+      const id = e.currentTarget.dataset.reject; let pend = pending();
+      pend = pend.filter(x=>x.id!==id); store.set('pending', pend); renderAdmin();
+    });
+
+    // KYC queue
+    const users = store.get('users', {}); const kycWrap = $('#kycQueue'); kycWrap.innerHTML='';
+    const entries = Object.entries(users);
+    if(!entries.length) kycWrap.innerHTML='<div class="muted">No KYC pending.</div>';
+    entries.forEach(([contact,u])=>{
+      const row = document.createElement('div'); row.className='card pad';
+      row.innerHTML = `<div class='row'><div><div class='h3'>${u.name||'User'}</div><div class='muted'>${contact}</div></div><span class='space'></span>
+        <button class='btn' data-verify='${contact}'>Verify</button>
+        <button class='btn bad' data-revoke='${contact}'>Revoke</button></div>`;
+      kycWrap.appendChild(row);
+    });
+    kycWrap.querySelectorAll('[data-verify]').forEach(b=> b.onclick = e=>{
+      const c = e.currentTarget.dataset.verify; const users = store.get('users', {}); if(users[c]) users[c].verified=true; store.set('users', users);
+      if(state.me.contact===c){ state.me.verified=true; saveMe(); }
+      renderAdmin();
+    });
+    kycWrap.querySelectorAll('[data-revoke]').forEach(b=> b.onclick = e=>{
+      const c = e.currentTarget.dataset.revoke; const users = store.get('users', {}); if(users[c]) users[c].verified=false; store.set('users', users);
+      if(state.me.contact===c){ state.me.verified=false; saveMe(); }
+      renderAdmin();
+    });
+
+    // Moderation (simple: list last 20 flagged words filtered to bullets not needed; here we allow deletion)
+    const chat = store.get('chat', {rooms:{},flags:[]}); const mod = $('#modQueue'); mod.innerHTML='';
+    Object.entries(chat.rooms).forEach(([room,msgs])=>{
+      msgs.forEach((m,idx)=>{
+        if(m.type==='text' && /•/.test(m.text)){
+          const row=document.createElement('div'); row.className='card pad';
+          row.innerHTML = `<div class='row'><div><div class='h3'>${room}</div><div class='muted'>Flagged message</div></div><span class='space'></span>
+          <button class='btn bad' data-del='${room}:${idx}'>Delete</button></div>`;
+          mod.appendChild(row);
+        }
+      })
+    });
+    mod.querySelectorAll('[data-del]').forEach(b=> b.onclick = e=>{
+      const [room,idx] = e.currentTarget.dataset.del.split(':');
+      const chat = store.get('chat', {rooms:{},flags:[]}); chat.rooms[room].splice(Number(idx),1); store.set('chat', chat); renderAdmin();
+    });
+
+    // Ads manager
+    const ads = store.get('ads', {home:{}, product:{}, community:{}});
+    $('#adHomeUrl').value = ads.home.img||''; $('#adHomeLink').value = ads.home.link||'';
+    $('#adProdUrl').value = ads.product.img||''; $('#adProdLink').value = ads.product.link||'';
+    $('#adComUrl').value = ads.community.img||''; $('#adComLink').value = ads.community.link||'';
+
+    $('#saveAds').onclick = ()=>{
+      const next = {
+        home:{img:$('#adHomeUrl').value.trim(), link:$('#adHomeLink').value.trim()},
+        product:{img:$('#adProdUrl').value.trim(), link:$('#adProdLink').value.trim()},
+        community:{img:$('#adComUrl').value.trim(), link:$('#adComLink').value.trim()},
+      };
+      store.set('ads', next); mountAds(); alert('Ads saved.');
+    };
+
+    // Metrics
+    const orders = store.get('orders', []);
+    const sales = orders.reduce((a,o)=>a+o.total,0);
+    const adRev = Math.round(Math.min(50, orders.length*0.5) * 100)/100; // playful placeholder
+    const m = $('#metrics'); m.innerHTML = '';
+    m.innerHTML = `<div class='row'><div>Total Orders</div><span class='space'></span><strong>${orders.length}</strong></div>
+      <div class='row'><div>Gross Sales</div><span class='space'></span><strong>${fmt(sales)}</strong></div>
+      <div class='row'><div>Ad Revenue (demo)</div><span class='space'></span><strong>${fmt(adRev)}</strong></div>`;
+  }
+
+  /*************************
+   * Modals
+   *************************/
+  function openModal(id){ document.getElementById(id).classList.add('show'); }
+  function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+  // Close modals on backdrop click
+  $$('.modal').forEach(m=> m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('show'); }));
+
+  /*************************
+   * Init
+   *************************/
+  function init(){
+    show('home'); updateCartCount(); renderHome(); mountAds();
+  }
+  init();
+  </script>
+</body>
+</html>
